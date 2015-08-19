@@ -11,7 +11,7 @@ class HackerNewsSpider(scrapy.Spider):
             item = HackerNewsItem()
             item['title'] = sel.xpath("./td[@class='title']/a/text()").extract()[0]
             item['url'] = sel.xpath("./td[@class='title']/a/@href").extract()[0]
-            details_sel = sel.xpath("following-sibling::*[position()=1]/td[@class='subtext']")
+            details_sel = sel.xpath("./following-sibling::*[position()=1]/td[@class='subtext']")
             item['points'] = details_sel.xpath("./span[@class='score']/text()").extract_first()
             item['user_name'] = details_sel.xpath("./a[starts-with(@href, 'user')]/text()").extract_first()
             item['since'] = details_sel.xpath("./a[starts-with(@href, 'item')][contains(., 'ago')]/text()").extract_first()
