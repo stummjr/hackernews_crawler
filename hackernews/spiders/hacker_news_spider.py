@@ -9,6 +9,10 @@ class HackerNewsSpider(scrapy.Spider):
     allowed_domains = ["ycombinator.com"]
     start_urls = ["http://news.ycombinator.com"]
 
+    def __init__(self, pages_to_follow=0, *args, **kwargs):
+        super(HackerNewsSpider, self).__init__(*args, **kwargs)
+        self.pages_to_follow = int(pages_to_follow)
+
     def parse(self, response):
         for sel in response.xpath("//tr[@class='athing']"):
             item = self.extract_news_item(sel, response)
@@ -19,7 +23,8 @@ class HackerNewsSpider(scrapy.Spider):
                     item['comments_url'], callback=self.parse_comments
                 )
         next_page = LinkExtractor(restrict_xpaths="//a[string(.)='More']").extract_links(response)
-        if next_page:
+        if next_page and self.pages_to_follow:
+            self.pages_to_follow -= 1
             yield scrapy.Request(next_page[0].url, callback=self.parse)
 
     def parse_comments(self, response):
