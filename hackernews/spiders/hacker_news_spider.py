@@ -18,11 +18,9 @@ class HackerNewsSpider(scrapy.Spider):
                 yield scrapy.Request(
                     item['comments_url'], callback=self.parse_comments
                 )
-        next_page_url = filter(
-            lambda s: s.text == 'More',
-            LinkExtractor().extract_links(response)
-        )[0].url
-        yield scrapy.Request(next_page_url, callback=self.parse)
+        next_page = LinkExtractor(restrict_xpaths="//a[string(.)='More']").extract_links(response)
+        if next_page:
+            yield scrapy.Request(next_page[0].url, callback=self.parse)
 
     def parse_comments(self, response):
         items = []
@@ -80,11 +78,11 @@ class HackerNewsSpider(scrapy.Spider):
                                      urljoin(response.url, comments_path))
         return news_item
 
-    def get_parent_of(self, list_, current):
-        for i in range(current, -1, -1):
-            if list_[i]['nesting_level'] < list_[current]['nesting_level']:
-                return list_[i]['id_']
+    def get_parent_of(self, comments, cur):
+        for i in range(cur, -1, -1):
+            if comments[i]['nesting_level'] < comments[cur]['nesting_level']:
+                return comments[i]['id_']
 
-    def fill_parents(self, list_):
-        for i, item in enumerate(list_):
-            item['parent'] = self.get_parent_of(list_, i)
+    def fill_parents(self, comments):
+        for i, item in enumerate(comments):
+            item['parent'] = self.get_parent_of(comments, i)
