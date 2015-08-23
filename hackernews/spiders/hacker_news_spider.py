@@ -12,6 +12,7 @@ class HackerNewsSpider(scrapy.Spider):
     def __init__(self, pages_to_follow=0, *args, **kwargs):
         super(HackerNewsSpider, self).__init__(*args, **kwargs)
         self.pages_to_follow = int(pages_to_follow)
+        print self.pages_to_follow
 
     def parse(self, response):
         for sel in response.xpath("//tr[@class='athing']"):
@@ -25,7 +26,8 @@ class HackerNewsSpider(scrapy.Spider):
         next_page = LinkExtractor(restrict_xpaths="//a[string(.)='More']").extract_links(response)
         if next_page and self.pages_to_follow:
             self.pages_to_follow -= 1
-            yield scrapy.Request(next_page[0].url, callback=self.parse)
+            print self.pages_to_follow
+            yield scrapy.Request(next_page[-1].url, callback=self.parse)
 
     def parse_comments(self, response):
         items = []
