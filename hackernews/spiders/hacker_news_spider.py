@@ -1,4 +1,5 @@
 import scrapy
+from w3lib import url
 from urlparse import urljoin
 from scrapy.linkextractors import LinkExtractor
 from hackernews.items import HackerNewsItem, CommentItem
@@ -12,7 +13,6 @@ class HackerNewsSpider(scrapy.Spider):
     def __init__(self, pages_to_follow=0, *args, **kwargs):
         super(HackerNewsSpider, self).__init__(*args, **kwargs)
         self.pages_to_follow = int(pages_to_follow)
-        print self.pages_to_follow
 
     def parse(self, response):
         for sel in response.xpath("//tr[@class='athing']"):
@@ -26,7 +26,6 @@ class HackerNewsSpider(scrapy.Spider):
         next_page = LinkExtractor(restrict_xpaths="//a[string(.)='More']").extract_links(response)
         if next_page and self.pages_to_follow:
             self.pages_to_follow -= 1
-            print self.pages_to_follow
             yield scrapy.Request(next_page[-1].url, callback=self.parse)
 
     def parse_comments(self, response):
@@ -34,10 +33,9 @@ class HackerNewsSpider(scrapy.Spider):
         # the first item is not a comment
         for athing_sel in response.xpath('//tr[@class="athing"]')[1:]:
             comment_item = CommentItem()
+            comment_item['hacker_news_item'] = url.url_query_parameter(response.url, "id")
             comment_item['nesting_level'] = int(
-                athing_sel.xpath(
-                    ".//td[@class='ind']/img/@width"
-                ).extract_first()
+                athing_sel.xpath(".//td[@class='ind']/img/@width").extract_first()
             )
             comment_item['text'] = "\n".join(
                 athing_sel.xpath(
@@ -62,12 +60,8 @@ class HackerNewsSpider(scrapy.Spider):
         link_sel = sel.xpath("./td[@class='title']")
         news_item['title'] = link_sel.xpath("./a/text()").extract_first()
         news_item['url'] = link_sel.xpath("./a/@href").extract_first()
-        details_sel = sel.xpath(
-            "./following-sibling::*[position()=1]/td[@class='subtext']"
-        )
-        news_item['points'] = details_sel.xpath(
-            "./span[@class='score']/text()"
-        ).extract_first()
+        details_sel = sel.xpath("./following-sibling::*[position()=1]/td[@class='subtext']")
+        news_item['points'] = details_sel.xpath("./span[@class='score']/text()").extract_first()
         news_item['user_name'] = details_sel.xpath(
             "./a[starts-with(@href, 'user')]/text()"
         ).extract_first()
@@ -78,11 +72,8 @@ class HackerNewsSpider(scrapy.Spider):
             "./a[starts-with(@href, 'item')][contains(., 'comment') or"
             "contains(., 'discuss')]/text()"
         ).extract_first()
-        comments_path = details_sel.xpath(
-            "./a[starts-with(@href, 'item')]/@href"
-        ).extract_first()
-        news_item['comments_url'] = (comments_path and
-                                     urljoin(response.url, comments_path))
+        comments_path = details_sel.xpath("./a[starts-with(@href, 'item')]/@href").extract_first()
+        news_item['comments_url'] = (comments_path and urljoin(response.url, comments_path))
         return news_item
 
     def get_parent_of(self, comments, cur):

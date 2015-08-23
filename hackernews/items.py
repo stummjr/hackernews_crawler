@@ -19,4 +19,3 @@ class CommentItem(scrapy.Item):
     parent = scrapy.Field()
     text = scrapy.Field()
     user_name = scrapy.Field()
-    since = scrapy.Field()
